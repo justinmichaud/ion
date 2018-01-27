@@ -25,6 +25,9 @@ use servo::style_traits::cursor::CursorKind;
 use std::env;
 use std::rc::Rc;
 use std::sync::Arc;
+use servo::script_traits;
+
+use std::thread;
 
 pub struct GlutinEventLoopWaker {
     proxy: Arc<glutin::EventsLoopProxy>,
@@ -90,10 +93,10 @@ fn main() {
     let (sender, receiver) = ipc::channel().unwrap();
     servo.handle_events(vec![WindowEvent::NewBrowser(url, sender)]);
     let browser_id = receiver.recv().unwrap();
+    let TopLevelBrowsingContextId(internal_bid) = browser_id;
     servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
 
     let mut pointer = (0.0, 0.0);
-    let mut ran = false;
 
     event_loop.run_forever(|event| {
         // Blocked until user event or until servo unblocks it
@@ -105,7 +108,10 @@ fn main() {
 
             glutin::Event::WindowEvent {
                 event: glutin::WindowEvent::Closed, ..
-            } => return glutin::ControlFlow::Break,
+            } => {
+                servo.handle_events(vec![WindowEvent::CloseBrowser(browser_id)]);
+                return glutin::ControlFlow::Break
+            },
 
             // Mousemove
             glutin::Event::WindowEvent {
@@ -129,8 +135,39 @@ fn main() {
                 },
                 ..
             } => {
-                let event = WindowEvent::Reload(browser_id);
-                servo.handle_events(vec![event]);
+                let chan = {
+                    let (tx, rx) = ipc::channel().unwrap();
+                    servo.constellation_chan.send(
+                        script_traits::ConstellationMsg::GetPipeline(internal_bid, tx.clone())).unwrap();
+                    rx.recv().unwrap().unwrap()
+                };
+
+                println!("Got chan {}", chan);
+
+                {
+                    let (tx, rx) = ipc::channel().unwrap();
+                    servo.constellation_chan.send(
+                        script_traits::ConstellationMsg::WebDriverCommand(
+                            script_traits::WebDriverCommandMsg::ScriptCommand(
+                                internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::ExecuteScript(
+                                    "alert('Hello world!');".to_string(), tx.clone()
+                                )
+                            )
+                        )
+                    ).unwrap();
+
+                    thread::spawn(move || {
+                        let result = rx.recv().unwrap();
+                        let result = result.unwrap_or_else(|_| {panic!("!")});
+                        println!("Got result {}", match result {
+                            script_traits::webdriver_msg::WebDriverJSValue::Null => "null",
+                            _ => "other"
+                        });
+                    });
+                };
+
+//                let event = WindowEvent::Reload(browser_id);
+//                servo.handle_events(vec![event]);
             }
 
             // Scrolling
