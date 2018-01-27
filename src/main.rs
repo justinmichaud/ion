@@ -1,3 +1,7 @@
+/*
+    This is taken mostly from https://github.com/paulrouget/servo-embedding-example
+*/
+
 extern crate glutin;
 extern crate servo;
 
@@ -6,7 +10,7 @@ use glutin::GlContext;
 use servo::BrowserId;
 use servo::compositing::compositor_thread::EventLoopWaker;
 use servo::compositing::windowing::{WindowEvent, WindowMethods};
-use servo::euclid::{Point2D, ScaleFactor, Size2D, TypedPoint2D, TypedRect, TypedSize2D,
+use servo::euclid::{Point2D, TypedScale, Size2D, TypedPoint2D, TypedRect, TypedSize2D,
                     TypedVector2D};
 use servo::ipc_channel::ipc;
 use servo::msg::constellation_msg::{Key, KeyModifiers, TopLevelBrowsingContextId};
@@ -77,7 +81,7 @@ fn main() {
     let window = Rc::new(Window {
                              glutin_window: window,
                              waker: event_loop_waker,
-                             gl: gl,
+                             gl,
                          });
 
     let mut servo = servo::Servo::new(window.clone());
@@ -89,6 +93,7 @@ fn main() {
     servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
 
     let mut pointer = (0.0, 0.0);
+    let mut ran = false;
 
     event_loop.run_forever(|event| {
         // Blocked until user event or until servo unblocks it
@@ -97,6 +102,10 @@ fn main() {
             glutin::Event::Awakened => {
                 servo.handle_events(vec![]);
             }
+
+            glutin::Event::WindowEvent {
+                event: glutin::WindowEvent::Closed, ..
+            } => return glutin::ControlFlow::Break,
 
             // Mousemove
             glutin::Event::WindowEvent {
@@ -180,8 +189,8 @@ impl WindowMethods for Window {
         self.gl.clone()
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
-        ScaleFactor::new(self.glutin_window.hidpi_factor())
+    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        TypedScale::new(self.glutin_window.hidpi_factor())
     }
 
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
@@ -243,11 +252,11 @@ impl WindowMethods for Window {
                   _key: Key,
                   _mods: KeyModifiers) {
     }
-    fn screen_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32> {
+    fn screen_size(&self, _ctx: TopLevelBrowsingContextId) -> Size2D<u32> {
         unimplemented!()
     }
 
-    fn screen_avail_size(&self, ctx: TopLevelBrowsingContextId) -> Size2D<u32> {
+    fn screen_avail_size(&self, _ctx: TopLevelBrowsingContextId) -> Size2D<u32> {
         unimplemented!()
     }
 
