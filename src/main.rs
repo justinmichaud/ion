@@ -89,7 +89,8 @@ fn main() {
 
     let mut servo = servo::Servo::new(window.clone());
 
-    let url = ServoUrl::parse("https://servo.org").unwrap();
+    let url = ServoUrl::parse(&format!("file://{}",  env::current_dir().unwrap()
+        .join("app_resources/index.html").to_str().unwrap())).unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     servo.handle_events(vec![WindowEvent::NewBrowser(url, sender)]);
     let browser_id = receiver.recv().unwrap();
@@ -123,7 +124,7 @@ fn main() {
                 servo.handle_events(vec![event]);
             }
 
-            // reload when R is pressed
+            // DEMOS start *******************************
             glutin::Event::WindowEvent {
                 event: glutin::WindowEvent::KeyboardInput {
                     input: glutin::KeyboardInput {
@@ -135,40 +136,56 @@ fn main() {
                 },
                 ..
             } => {
-                let chan = {
-                    let (tx, rx) = ipc::channel().unwrap();
-                    servo.constellation_chan.send(
-                        script_traits::ConstellationMsg::GetPipeline(internal_bid, tx.clone())).unwrap();
-                    rx.recv().unwrap().unwrap()
-                };
-
-                println!("Got chan {}", chan);
-
-                {
-                    let (tx, rx) = ipc::channel().unwrap();
-                    servo.constellation_chan.send(
-                        script_traits::ConstellationMsg::WebDriverCommand(
-                            script_traits::WebDriverCommandMsg::ScriptCommand(
-                                internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::ExecuteScript(
-                                    "alert('Hello world!');".to_string(), tx.clone()
-                                )
+                let (tx, rx) = ipc::channel().unwrap();
+                servo.constellation_chan.send(
+                    script_traits::ConstellationMsg::WebDriverCommand(
+                        script_traits::WebDriverCommandMsg::ScriptCommand(
+                            internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::ExecuteScript(
+                                "alert('Hello world!');".to_string(), tx.clone()
                             )
                         )
-                    ).unwrap();
+                    )
+                ).unwrap();
 
-                    thread::spawn(move || {
-                        let result = rx.recv().unwrap();
-                        let result = result.unwrap_or_else(|_| {panic!("!")});
-                        println!("Got result {}", match result {
-                            script_traits::webdriver_msg::WebDriverJSValue::Null => "null",
-                            _ => "other"
-                        });
+                thread::spawn(move || {
+                    let result = rx.recv().unwrap();
+                    let result = result.unwrap_or_else(|_| {panic!("!")});
+                    println!("Got result {}", match result {
+                        script_traits::webdriver_msg::WebDriverJSValue::Null => "null",
+                        _ => "other"
                     });
-                };
-
-//                let event = WindowEvent::Reload(browser_id);
-//                servo.handle_events(vec![event]);
+                });
             }
+
+            glutin::Event::WindowEvent {
+                event: glutin::WindowEvent::KeyboardInput {
+                    input: glutin::KeyboardInput {
+                        state: glutin::ElementState::Pressed,
+                        virtual_keycode: Some(glutin::VirtualKeyCode::T),
+                        ..
+                    },
+                    ..
+                },
+                ..
+            } => {
+                let (tx, rx) = ipc::channel().unwrap();
+                servo.constellation_chan.send(
+                    script_traits::ConstellationMsg::WebDriverCommand(
+                        script_traits::WebDriverCommandMsg::ScriptCommand(
+                            internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::Testing(
+                                "myid".to_string(), tx.clone()
+                            )
+                        )
+                    )
+                ).unwrap();
+
+                thread::spawn(move || {
+                    let result = rx.recv().unwrap();
+                    println!("Got test result: {}", result);
+                });
+            }
+
+            // DEMOS end *******************************
 
             // Scrolling
             glutin::Event::WindowEvent {

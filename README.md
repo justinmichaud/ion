@@ -9,7 +9,6 @@ TODO:
     - Add element to dom
     - Register rust callback or receive message for window onload event
     - Add button to page with rust onclick callback
-    - load webpage from local resources folder
     - call rust code from js (send custom events?)
     - overlay opengl content
 
