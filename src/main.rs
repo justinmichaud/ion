@@ -9,13 +9,13 @@ use servo::gl;
 use glutin::GlContext;
 use servo::BrowserId;
 use servo::compositing::compositor_thread::EventLoopWaker;
-use servo::compositing::windowing::{WindowEvent, WindowMethods};
+use servo::compositing::windowing::{WindowEvent, WindowMethods, MouseWindowEvent};
 use servo::euclid::{Point2D, TypedScale, Size2D, TypedPoint2D, TypedRect, TypedSize2D,
                     TypedVector2D};
 use servo::ipc_channel::ipc;
 use servo::msg::constellation_msg::{Key, KeyModifiers, TopLevelBrowsingContextId};
 use servo::net_traits::net_error_list::NetError;
-use servo::script_traits::{LoadData, TouchEventType};
+use servo::script_traits::{LoadData, TouchEventType, MouseButton};
 use servo::servo_config::opts;
 use servo::servo_config::resource_files::set_resources_path;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -121,6 +121,18 @@ fn main() {
                 pointer = (x, y);
                 let event = WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32,
                                                                                      y as f32));
+                servo.handle_events(vec![event]);
+            }
+
+            glutin::Event::WindowEvent {
+                event: glutin::WindowEvent::MouseInput {
+                    button: glutin::MouseButton::Left, ..
+                }, ..
+            } => {
+                let (x, y) = pointer;
+                let event = WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(
+                    MouseButton::Left, TypedPoint2D::new(x as f32, y as f32)
+                ));
                 servo.handle_events(vec![event]);
             }
 

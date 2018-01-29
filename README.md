@@ -1,22 +1,32 @@
-Ion - A "rusted" electron
+## Ion - A "rusted" electron
 
 Current status: Horribly broken
 Goal: Gui toolkit allowing apps to be built in native rust, with html/css/js display logic
 
 TODO:
 - Spike - From rust:
-    - Find and mutate dom element
-    - Add element to dom
-    - Register rust callback or receive message for window onload event
-    - Add button to page with rust onclick callback
-    - call rust code from js (send custom events?)
-    - overlay opengl content
+    - Rust onclick callback
+    - Construct JS object in rust and use as param to call js method
+    - Add JS Application object implemented in rust
+
+What is proven possible:
+- Changing attributes of element, inserting/deleting dom elements, getting value, running JS
+- Registering JS onclick handlers
+
+What is needed:
+- Handle window on* events in rust
+- Add rust callbacks for events (or use message passing)
+- Construct JS object and use to call window method
+- Send event to rust code: Application.cast("MyController.submit")
+- Rust macro to generate html page from components?
 
 - Design:
     - Allow app developers to register actor for every page, which can send/receive events from js
 
 - Demo:
     - Simple notepad app
+
+- OpenGL support: Allow overlaying opengl content, maybe hook into present?
 
 To build:
 Download a my fork of servo to ../servo
