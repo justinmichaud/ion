@@ -126,7 +126,8 @@ fn main() {
 
             glutin::Event::WindowEvent {
                 event: glutin::WindowEvent::MouseInput {
-                    button: glutin::MouseButton::Left, ..
+                    button: glutin::MouseButton::Left,
+                    state: glutin::ElementState::Pressed, ..
                 }, ..
             } => {
                 let (x, y) = pointer;

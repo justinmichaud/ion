@@ -5,7 +5,6 @@ Goal: Gui toolkit allowing apps to be built in native rust, with html/css/js dis
 
 TODO:
 - Spike - From rust:
-    - Rust onclick callback
     - Construct JS object in rust and use as param to call js method
     - Add JS Application object implemented in rust
 
