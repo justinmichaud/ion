@@ -5,19 +5,18 @@ Goal: Gui toolkit allowing apps to be built in native rust, with html/css/js dis
 
 TODO:
 - Spike - From rust:
-    - Construct JS object in rust and use as param to call js method
-    - Add JS Application object implemented in rust
+    - Get callback when document is loaded
+    - Allow registering js code for custom AppStart event
+    - Add JS Application object implemented in rust: http://jeenalee.com/2016/10/03/implementing-doge-for-servo.html
 
 What is proven possible:
 - Changing attributes of element, inserting/deleting dom elements, getting value, running JS
-- Registering JS onclick handlers
+- Registering JS onclick handlers + Rust onclick handlers
 
 What is needed:
-- Handle window on* events in rust
-- Add rust callbacks for events (or use message passing)
-- Construct JS object and use to call window method
-- Send event to rust code: Application.cast("MyController.submit")
-- Rust macro to generate html page from components?
+- Custom DOM api
+- Custom AppStart event
+- Launch app thread that can perform dom manipulation
 
 - Design:
     - Allow app developers to register actor for every page, which can send/receive events from js

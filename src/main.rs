@@ -28,6 +28,7 @@ use std::sync::Arc;
 use servo::script_traits;
 
 use std::thread;
+use servo::ipc_channel::ipc::IpcSender;
 
 pub struct GlutinEventLoopWaker {
     proxy: Arc<glutin::EventsLoopProxy>,
@@ -48,6 +49,7 @@ struct Window {
     glutin_window: glutin::GlWindow,
     waker: Box<EventLoopWaker>,
     gl: Rc<gl::Gl>,
+    app_channel: IpcSender<String>
 }
 
 fn main() {
@@ -81,10 +83,13 @@ fn main() {
     set_resources_path(Some(path));
     opts::set_defaults(opts::default_opts());
 
+    let (app_channel_send, app_channel_recv) = ipc::channel().unwrap();
+    let (main_channel_send, main_channel_recv) = ipc::channel().unwrap();
+    let app_thread_proxy = event_loop_waker.proxy.clone();
     let window = Rc::new(Window {
                              glutin_window: window,
                              waker: event_loop_waker,
-                             gl,
+                             gl, app_channel: app_channel_send.clone()
                          });
 
     let mut servo = servo::Servo::new(window.clone());
@@ -97,13 +102,42 @@ fn main() {
     let TopLevelBrowsingContextId(internal_bid) = browser_id;
     servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
 
+    thread::spawn(move || {
+        while let Ok(result) = app_channel_recv.recv() {
+            println!("Got message: {}, relaying to main thread", result);
+            main_channel_send.send(result).unwrap();
+            app_thread_proxy.wakeup().unwrap();
+        };
+        println!("Closing app thread")
+    });
+
     let mut pointer = (0.0, 0.0);
+    let mut ran = false;
 
     event_loop.run_forever(|event| {
         // Blocked until user event or until servo unblocks it
         match event {
             // This is the event triggered by GlutinEventLoopWaker
             glutin::Event::Awakened => {
+                if let Ok(result) = main_channel_recv.try_recv() {
+                    println!("Got main channel message {}", result);
+                    match result.as_str() {
+                        "head_parsed" => if !ran {
+                            ran = true;
+
+                            servo.constellation_chan.send(
+                                script_traits::ConstellationMsg::WebDriverCommand(
+                                    script_traits::WebDriverCommandMsg::ScriptCommand(
+                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::Testing(
+                                            "myid".to_string(), app_channel_send.clone()
+                                        )
+                                    )
+                                )
+                            ).unwrap();
+                        }
+                        _ => {}
+                    }
+                };
                 servo.handle_events(vec![]);
             }
 
@@ -136,69 +170,6 @@ fn main() {
                 ));
                 servo.handle_events(vec![event]);
             }
-
-            // DEMOS start *******************************
-            glutin::Event::WindowEvent {
-                event: glutin::WindowEvent::KeyboardInput {
-                    input: glutin::KeyboardInput {
-                        state: glutin::ElementState::Pressed,
-                        virtual_keycode: Some(glutin::VirtualKeyCode::R),
-                        ..
-                    },
-                    ..
-                },
-                ..
-            } => {
-                let (tx, rx) = ipc::channel().unwrap();
-                servo.constellation_chan.send(
-                    script_traits::ConstellationMsg::WebDriverCommand(
-                        script_traits::WebDriverCommandMsg::ScriptCommand(
-                            internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::ExecuteScript(
-                                "alert('Hello world!');".to_string(), tx.clone()
-                            )
-                        )
-                    )
-                ).unwrap();
-
-                thread::spawn(move || {
-                    let result = rx.recv().unwrap();
-                    let result = result.unwrap_or_else(|_| {panic!("!")});
-                    println!("Got result {}", match result {
-                        script_traits::webdriver_msg::WebDriverJSValue::Null => "null",
-                        _ => "other"
-                    });
-                });
-            }
-
-            glutin::Event::WindowEvent {
-                event: glutin::WindowEvent::KeyboardInput {
-                    input: glutin::KeyboardInput {
-                        state: glutin::ElementState::Pressed,
-                        virtual_keycode: Some(glutin::VirtualKeyCode::T),
-                        ..
-                    },
-                    ..
-                },
-                ..
-            } => {
-                let (tx, rx) = ipc::channel().unwrap();
-                servo.constellation_chan.send(
-                    script_traits::ConstellationMsg::WebDriverCommand(
-                        script_traits::WebDriverCommandMsg::ScriptCommand(
-                            internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::Testing(
-                                "myid".to_string(), tx.clone()
-                            )
-                        )
-                    )
-                ).unwrap();
-
-                thread::spawn(move || {
-                    let result = rx.recv().unwrap();
-                    println!("Got test result: {}", result);
-                });
-            }
-
-            // DEMOS end *******************************
 
             // Scrolling
             glutin::Event::WindowEvent {
@@ -307,7 +278,9 @@ impl WindowMethods for Window {
 
     fn load_error(&self, _id: BrowserId, _: NetError, _url: String) {}
 
-    fn head_parsed(&self, _id: BrowserId) {}
+    fn head_parsed(&self, _id: BrowserId) {
+        self.app_channel.send("head_parsed".to_string()).unwrap();
+    }
 
     fn history_changed(&self, _id: BrowserId, _entries: Vec<LoadData>, _current: usize) {}
 
