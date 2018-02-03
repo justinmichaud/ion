@@ -53,7 +53,7 @@ struct Window {
 }
 
 fn main() {
-
+    let app_module_path = env::args().nth(1).expect("USAGE: ion <crate library name>");
     println!("Servo version: {}", servo::config::servo_version());
 
     let mut event_loop = glutin::EventsLoop::new();
@@ -128,9 +128,7 @@ fn main() {
                             servo.constellation_chan.send(
                                 script_traits::ConstellationMsg::WebDriverCommand(
                                     script_traits::WebDriverCommandMsg::ScriptCommand(
-                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::Testing(
-                                            "myid".to_string(), app_channel_send.clone()
-                                        )
+                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::LoadRustScript(app_module_path.to_string())
                                     )
                                 )
                             ).unwrap();
