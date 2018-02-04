@@ -30,6 +30,8 @@ use servo::script_traits;
 use std::thread;
 use servo::ipc_channel::ipc::IpcSender;
 
+use servo::script::dom::document::Document;
+
 pub struct GlutinEventLoopWaker {
     proxy: Arc<glutin::EventsLoopProxy>,
 }
@@ -50,6 +52,33 @@ struct Window {
     waker: Box<EventLoopWaker>,
     gl: Rc<gl::Gl>,
     app_channel: IpcSender<String>
+}
+
+fn my_handler(doc: &Document) {
+    use std::ops::Deref;
+    use servo::script::dom::bindings::str::DOMString;
+    use servo::script::dom::bindings::codegen::UnionTypes::NodeOrString;
+    use servo::script::dom::eventtarget::EventTarget;
+    use servo::script::dom::eventtarget::RustEventHandler;
+    use servo::script::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+    use servo::script::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+    use servo::script::dom::bindings::inheritance::Castable;
+
+    let window = doc.window();
+    window.deref().upcast::<EventTarget>().add_event_handler_rust("load", RustEventHandler {
+        handler: Rc::new(|| println!("I am rust code inside my_handler on load!!!!!"))
+    });
+
+//    let elem_ptr = doc.GetElementById(DOMString::from_string("myid".to_string())).unwrap();
+//    elem_ptr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
+//    elem_ptr.deref().SetAttribute(DOMString::from_string("style".to_string()),
+//                                  DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
+//    elem_ptr.deref().Append(vec![NodeOrString::String(
+//        DOMString::from_string("My child".to_string()))]).unwrap();
+//    let node: &EventTarget = elem_ptr.deref().upcast::<EventTarget>();
+//    node.add_event_handler_rust("click", RustEventHandler {
+//        handler: Rc::new(|| println!("I am rust code inside my_handler!!!!!"))
+//    });
 }
 
 fn main() {
@@ -92,7 +121,7 @@ fn main() {
                              gl, app_channel: app_channel_send.clone()
                          });
 
-    let mut servo = servo::Servo::new(window.clone());
+    let mut servo = servo::Servo::new(window.clone(), Some(my_handler));
 
     let url = ServoUrl::parse(&format!("file://{}",  env::current_dir().unwrap()
         .join("app_resources/index.html").to_str().unwrap())).unwrap();
@@ -128,9 +157,7 @@ fn main() {
                             servo.constellation_chan.send(
                                 script_traits::ConstellationMsg::WebDriverCommand(
                                     script_traits::WebDriverCommandMsg::ScriptCommand(
-                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::Testing(
-                                            "myid".to_string(), app_channel_send.clone()
-                                        )
+                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::LoadRust
                                     )
                                 )
                             ).unwrap();

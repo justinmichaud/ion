@@ -4,27 +4,17 @@ Current status: Horribly broken
 Goal: Gui toolkit allowing apps to be built in native rust, with html/css/js display logic
 
 TODO:
-- Spike - From rust:
-    - Get callback when document is loaded
-    - Allow registering js code for custom AppStart event
-    - Add JS Application object implemented in rust: http://jeenalee.com/2016/10/03/implementing-doge-for-servo.html
+- Split into lib and make example hello world click counter application with rust click listener
+- Component + databinding example: todolist
+- Save button for todolist
 
-What is proven possible:
-- Changing attributes of element, inserting/deleting dom elements, getting value, running JS
-- Registering JS onclick handlers + Rust onclick handlers
-
-What is needed:
-- Custom DOM api
-- Custom AppStart event
-- Launch app thread that can perform dom manipulation
-
-- Design:
-    - Allow app developers to register actor for every page, which can send/receive events from js
-
-- Demo:
-    - Simple notepad app
+- DEMO: Build simple text editor:
+    - Matching brackets highlighting
+    - Native menu, open file dialog
+    - Find component
 
 - OpenGL support: Allow overlaying opengl content, maybe hook into present?
+- DEMO: Click button to control color of opengl window
 
 To build:
 Download a my fork of servo to ../servo
