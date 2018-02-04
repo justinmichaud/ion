@@ -1,8 +1,7 @@
-Goal: Gui toolkit allowing apps to be built using html/css, in native rust instead of javascript
+Ion - An Oxidized Electron
+Goal: Gui toolkit allowing apps to be built using html/css, in native rust instead of javascript. Basically, electron with rust instead of javascript
 
 TODO:
-- Hello world click counter application with rust click listener
-
 - Component + databinding example: todolist
 - Save button for todolist
 
