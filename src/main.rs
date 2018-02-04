@@ -66,19 +66,23 @@ fn my_handler(doc: &Document) {
 
     let window = doc.window();
     window.deref().upcast::<EventTarget>().add_event_handler_rust("load", RustEventHandler {
-        handler: Rc::new(|| println!("I am rust code inside my_handler on load!!!!!"))
-    });
+        handler: Rc::new( |doc| {
+            let elem_ptr = doc.GetElementById(DOMString::from_string("myid".to_string()));
+            println!("This part ran");
+            drop(elem_ptr);
+            println!("This part did not");
 
-//    let elem_ptr = doc.GetElementById(DOMString::from_string("myid".to_string())).unwrap();
-//    elem_ptr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
-//    elem_ptr.deref().SetAttribute(DOMString::from_string("style".to_string()),
-//                                  DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
-//    elem_ptr.deref().Append(vec![NodeOrString::String(
-//        DOMString::from_string("My child".to_string()))]).unwrap();
-//    let node: &EventTarget = elem_ptr.deref().upcast::<EventTarget>();
-//    node.add_event_handler_rust("click", RustEventHandler {
-//        handler: Rc::new(|| println!("I am rust code inside my_handler!!!!!"))
-//    });
+//            elem_ptr.deref().SetInnerHTML(DOMString::from_string("Bonjour!".to_string())).unwrap();
+//            elem_ptr.deref().SetAttribute(DOMString::from_string("style".to_string()),
+//                                          DOMString::from_string("background-color: #eee; border: 1px solid black".to_string())).unwrap();
+//            elem_ptr.deref().Append(vec![NodeOrString::String(
+//                DOMString::from_string("My child".to_string()))]).unwrap();
+//            let node: &EventTarget = elem_ptr.deref().upcast::<EventTarget>();
+//            node.add_event_handler_rust("click", RustEventHandler {
+//                handler: Rc::new(|_| println!("I am rust code inside my_handler!!!!!"))
+//            });
+        })
+    });
 }
 
 fn main() {
