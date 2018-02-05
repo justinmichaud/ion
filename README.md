@@ -1,20 +1,23 @@
-Ion - An Oxidized Electron
-Goal: Gui toolkit allowing apps to be built using html/css, in native rust instead of javascript. Basically, electron with rust instead of javascript
+## Ion - An Oxidized Electron
+Proof of concept for building native html/css/rust apps using servo. Ideally, this would become electron, but with rust/servo instead of javascript/webkit
 
-TODO:
-- Component + databinding example: todolist
-- Save button for todolist
+## Structure
+You give servo an app_main function that is called once servo's script thread has started.
+You can use it to manipulate the dom, add rust event handlers, or send messages to other processes for heavy lifting.
+
+## TODO:
+- *Find a way to not mutilate servo's encapsulation
+- Component + databinding example: todolist that read/saves from file
 
 - DEMO: Build simple text editor:
-    - Matching brackets highlighting
     - Native menu, open file dialog
-    - Find component
+    - Find/replace, matching bracket highlighting
 
-- OpenGL support: Allow overlaying opengl content, maybe hook into present?
+- OpenGL support: Allow overlaying opengl content, maybe hook into window.present? Canvas would be nice.
 
 To build:
-Download a my fork of servo to ../servo
-On Mac, build as normal.
+Download https://github.com/justinmichaud/servo to ../servo
+On Mac, build as normal with cargo.
 On Fedora 27, I needed to use these env flags to get glutin to work. This seems to be some mesa bug, which should be fixed soon.
 Also, for some reason, on Fedora a release build crashes with SIGILL
 ```

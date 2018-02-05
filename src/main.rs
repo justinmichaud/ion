@@ -2,6 +2,8 @@
     This is taken mostly from https://github.com/paulrouget/servo-embedding-example
 */
 
+mod app;
+
 extern crate glutin;
 extern crate servo;
 
@@ -25,12 +27,6 @@ use servo::style_traits::cursor::CursorKind;
 use std::env;
 use std::rc::Rc;
 use std::sync::Arc;
-use servo::script_traits;
-
-use std::thread;
-use servo::ipc_channel::ipc::IpcSender;
-
-use servo::script::dom::document::Document;
 
 pub struct GlutinEventLoopWaker {
     proxy: Arc<glutin::EventsLoopProxy>,
@@ -51,60 +47,9 @@ struct Window {
     glutin_window: glutin::GlWindow,
     waker: Box<EventLoopWaker>,
     gl: Rc<gl::Gl>,
-    app_channel: IpcSender<String>
-}
-
-fn my_handler(doc: &Document) {
-    use std::ops::Deref;
-    use servo::script::dom::bindings::str::DOMString;
-    use servo::script::dom::eventtarget::EventTarget;
-    use servo::script::dom::eventtarget::RustEventHandler;
-    use servo::script::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-    use servo::script::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-    use servo::script::dom::bindings::inheritance::Castable;
-    use servo::script::dom::node::Node;
-    use servo::script::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-    use servo::script::dom::bindings::root::DomRoot;
-    use servo::script::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
-    use servo::script::dom::element::Element;
-
-    let window = doc.window();
-    window.deref().upcast::<EventTarget>().add_event_handler_rust("load", RustEventHandler {
-        handler: Rc::new( |doc, cx| {
-            use std::cell::RefCell;
-            thread_local!(static count: RefCell<i32> = RefCell::new(0));
-
-            let body_collection = doc.GetElementsByTagName(DOMString::from_string("body".to_string()));
-            let body_ptr = body_collection.elements_iter().last().unwrap();
-
-            let button: DomRoot<Element> = doc.CreateElement(DOMString::from_string("button".to_string()),
-                                                             unsafe { &ElementCreationOptions::empty(cx) }).unwrap();
-            button.deref().SetInnerHTML(DOMString::from_string("Click me!".to_string())).unwrap();
-            body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(button)).unwrap();
-
-            let text: DomRoot<Element> = doc.CreateElement(DOMString::from_string("p".to_string()),
-                                                             unsafe { &ElementCreationOptions::empty(cx) }).unwrap();
-            text.deref().SetInnerHTML(DOMString::from_string("The current count is 0!".to_string())).unwrap();
-            text.deref().SetId(DOMString::from_string("myid".to_string()));
-            body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(text)).unwrap();
-
-            let node: &EventTarget = body_ptr .deref().upcast::<EventTarget>();
-            node.add_event_handler_rust("click", RustEventHandler {
-                handler: Rc::new(|doc,_| {
-                    count.with(|root| *root.borrow_mut() += 1);
-                    count.with(|root| {
-                        let elem_ptr = doc.GetElementById(DOMString::from_string("myid".to_string())).unwrap();
-                        elem_ptr.deref().SetInnerHTML(DOMString::from_string(format!("The current count is {}!",
-                                                                                     *root.borrow()).to_string())).unwrap();
-                    });
-                })
-            });
-        })
-    });
 }
 
 fn main() {
-
     println!("Servo version: {}", servo::config::servo_version());
 
     let mut event_loop = glutin::EventsLoop::new();
@@ -134,59 +79,28 @@ fn main() {
     set_resources_path(Some(path));
     opts::set_defaults(opts::default_opts());
 
-    let (app_channel_send, app_channel_recv) = ipc::channel().unwrap();
-    let (main_channel_send, main_channel_recv) = ipc::channel().unwrap();
-    let app_thread_proxy = event_loop_waker.proxy.clone();
     let window = Rc::new(Window {
                              glutin_window: window,
                              waker: event_loop_waker,
-                             gl, app_channel: app_channel_send.clone()
+                             gl,
                          });
 
-    let mut servo = servo::Servo::new(window.clone(), Some(my_handler));
+    let mut servo = servo::Servo::new(window.clone(), Some(app::app_main));
 
     let url = ServoUrl::parse(&format!("file://{}",  env::current_dir().unwrap()
         .join("app_resources/index.html").to_str().unwrap())).unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     servo.handle_events(vec![WindowEvent::NewBrowser(url, sender)]);
     let browser_id = receiver.recv().unwrap();
-    let TopLevelBrowsingContextId(internal_bid) = browser_id;
     servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
 
-    thread::spawn(move || {
-        while let Ok(result) = app_channel_recv.recv() {
-            println!("Got message: {}, relaying to main thread", result);
-            main_channel_send.send(result).unwrap();
-            app_thread_proxy.wakeup().unwrap();
-        };
-        println!("Closing app thread")
-    });
-
     let mut pointer = (0.0, 0.0);
-    let mut ran = false;
 
     event_loop.run_forever(|event| {
         // Blocked until user event or until servo unblocks it
         match event {
             // This is the event triggered by GlutinEventLoopWaker
             glutin::Event::Awakened => {
-                if let Ok(result) = main_channel_recv.try_recv() {
-                    println!("Got main channel message {}", result);
-                    match result.as_str() {
-                        "head_parsed" => if !ran {
-                            ran = true;
-
-                            servo.constellation_chan.send(
-                                script_traits::ConstellationMsg::WebDriverCommand(
-                                    script_traits::WebDriverCommandMsg::ScriptCommand(
-                                        internal_bid, script_traits::webdriver_msg::WebDriverScriptCommand::LoadRust
-                                    )
-                                )
-                            ).unwrap();
-                        }
-                        _ => {}
-                    }
-                };
                 servo.handle_events(vec![]);
             }
 
@@ -327,9 +241,7 @@ impl WindowMethods for Window {
 
     fn load_error(&self, _id: BrowserId, _: NetError, _url: String) {}
 
-    fn head_parsed(&self, _id: BrowserId) {
-        self.app_channel.send("head_parsed".to_string()).unwrap();
-    }
+    fn head_parsed(&self, _id: BrowserId) {}
 
     fn history_changed(&self, _id: BrowserId, _entries: Vec<LoadData>, _current: usize) {}
 
