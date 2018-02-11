@@ -14,10 +14,21 @@ use servo::script::dom::bindings::root::DomRoot;
 use servo::script::dom::bindings::codegen::Bindings::DocumentBinding::ElementCreationOptions;
 use servo::script::dom::element::Element;
 
+use servo::script::script_thread::ION_APPLICATION_FRAME_CALLBACK;
+
+fn frame_callback(doc: &Document) {
+    let body_collection = doc.GetElementsByTagName(DOMString::from_string("body".to_string()));
+    let body_ptr = body_collection.elements_iter().last().unwrap();
+    let button: DomRoot<Element> = doc.CreateElement(DOMString::from_string("button".to_string()),
+                                                     unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap();
+    button.deref().SetInnerHTML(DOMString::from_string("Click me 2!".to_string())).unwrap();
+    body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(button)).unwrap();
+}
+
 pub fn app_main(doc: &Document) {
     let window = doc.window();
     window.deref().upcast::<EventTarget>().add_event_handler_rust("load", RustEventHandler {
-        handler: Rc::new( |doc, cx| {
+        handler: Rc::new( |doc: &Document, _| {
             use std::cell::RefCell;
             thread_local!(static COUNT: RefCell<i32> = RefCell::new(0));
 
@@ -25,17 +36,19 @@ pub fn app_main(doc: &Document) {
             let body_ptr = body_collection.elements_iter().last().unwrap();
 
             let button: DomRoot<Element> = doc.CreateElement(DOMString::from_string("button".to_string()),
-                                                             unsafe { &ElementCreationOptions::empty(cx) }).unwrap();
+                                                             unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap();
             button.deref().SetInnerHTML(DOMString::from_string("Click me!".to_string())).unwrap();
+            button.deref().SetId(DOMString::from_string("button".to_string()));
             body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(button)).unwrap();
 
             let text: DomRoot<Element> = doc.CreateElement(DOMString::from_string("p".to_string()),
-                                                           unsafe { &ElementCreationOptions::empty(cx) }).unwrap();
+                                                           unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap();
             text.deref().SetInnerHTML(DOMString::from_string("The current count is 0!".to_string())).unwrap();
             text.deref().SetId(DOMString::from_string("myid".to_string()));
             body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(text)).unwrap();
 
-            let node: &EventTarget = body_ptr .deref().upcast::<EventTarget>();
+            let button_ptr = doc.GetElementById(DOMString::from_string("button".to_string())).unwrap();
+            let node: &EventTarget = button_ptr.deref().upcast::<EventTarget>();
             node.add_event_handler_rust("click", RustEventHandler {
                 handler: Rc::new(|doc,_| {
                     COUNT.with(|root| *root.borrow_mut() += 1);
@@ -46,6 +59,9 @@ pub fn app_main(doc: &Document) {
                     });
                 })
             });
+
+            ION_APPLICATION_FRAME_CALLBACK.with(|root| root.set(Some(frame_callback)));
+
         })
     });
 }

@@ -1,2 +1,9 @@
 <html>
+<body>
+<script>
+    // Trigger the rust callback hack
+    const hack = function() {window.requestAnimationFrame(hack);}
+    hack()
+</script>
+</body>
 </html>
