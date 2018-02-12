@@ -1,8 +1,13 @@
+#![feature(plugin)]
+#![plugin(interpolate_idents)]
+
+#[macro_use]
+mod observable;
+mod app;
+
 /*
     This is taken mostly from https://github.com/paulrouget/servo-embedding-example
 */
-
-mod app;
 
 extern crate glutin;
 extern crate servo;

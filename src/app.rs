@@ -1,5 +1,6 @@
 use std::ops::Deref;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 use servo::script::dom::document::Document;
 use servo::script::dom::bindings::str::DOMString;
@@ -16,45 +17,11 @@ use servo::script::dom::element::Element;
 
 use servo::script::script_thread::ION_APPLICATION_FRAME_CALLBACK;
 
-use std::cell::RefCell;
+observable! {&Document, struct AppState {
+    count : i32 = 0,
+}}
 
 thread_local!(static APP_STATE: RefCell<AppState> = RefCell::new(AppState::new()));
-
-struct AppState {
-    count: i32,
-    observers: Vec<fn(&Document, &mut AppState)->()>,
-    has_changed: bool,
-}
-
-impl AppState {
-    pub fn new() -> AppState {
-        AppState {
-            count: 0,
-            observers: vec![],
-            has_changed: true,
-        }
-    }
-
-    pub fn on_change(&mut self, observer: fn(&Document, &mut AppState)->()) {
-        self.observers.push(observer)
-    }
-
-    pub fn get_count(&self) -> i32 { self.count }
-
-    pub fn set_count(&mut self, count: i32) {
-        self.count = count;
-        self.has_changed = true;
-    }
-
-    pub fn tick(&mut self, doc: &Document) {
-        if !self.has_changed { return; }
-        let current_observers = self.observers.clone();
-        for f in current_observers {
-            f(doc, self);
-        }
-        self.has_changed = false;
-    }
-}
 
 fn frame_callback(doc: &Document) {
     APP_STATE.with(|root| root.borrow_mut().tick(doc))
