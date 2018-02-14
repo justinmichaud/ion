@@ -1,13 +1,13 @@
 #[macro_export]
 macro_rules! observable {
-    ($glob_state_ty:ty, struct $name:ident {
+    ($glob_state_ty:ty, $app_state_ty:ty, struct $name:ident {
         $($field:ident : $t:ty = $e:expr $(,)*)*
     }) => {
         struct $name {
             $(
                 $field : $t,
             )*
-            observers: Vec<fn($glob_state_ty, &mut $name)->()>,
+            observers: Vec<fn($glob_state_ty, $app_state_ty)->()>,
             has_changed: bool,
         }
 
@@ -22,22 +22,17 @@ macro_rules! observable {
                  }
             }
 
-            pub fn on_change(&mut self, observer: fn($glob_state_ty, &mut $name)->()) {
+            pub fn on_change(&mut self, observer: fn($glob_state_ty, $app_state_ty)->()) {
                 self.observers.push(observer)
-            }
-
-            pub fn tick(&mut self, doc: $glob_state_ty) {
-                if !self.has_changed { return; }
-                let current_observers = self.observers.clone();
-                for f in current_observers {
-                    f(doc, self);
-                }
-                self.has_changed = false;
             }
 
             $(
                 interpolate_idents! {
-                    fn [get_ $field](&self) -> $t { self.$field }
+                    #[allow(dead_code)]
+                    fn [get_ $field](&self) -> &$t { &self.$field }
+                    #[allow(dead_code)]
+                    fn [get_ $field _mut](&mut self) -> &mut $t { &mut self.$field }
+                    #[allow(dead_code)]
                     fn [set_ $field](&mut self, val: $t) {
                         self.$field = val;
                         self.has_changed = true;

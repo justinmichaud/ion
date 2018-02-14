@@ -1156,6 +1156,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ion"
+version = "0.1.0"
+dependencies = [
+ "glutin 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "interpolate_idents 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libservo 0.0.1",
+]
+
+[[package]]
 name = "iovec"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2383,15 +2392,6 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "servo-embedding"
-version = "0.1.0"
-dependencies = [
- "glutin 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "interpolate_idents 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "libservo 0.0.1",
 ]
 
 [[package]]

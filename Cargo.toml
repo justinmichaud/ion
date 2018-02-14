@@ -1,5 +1,5 @@
 [package]
-name = "servo-embedding"
+name = "ion"
 version = "0.1.0"
 authors = ["Justin Michaud <justin@justinmichaud.com>"]
 

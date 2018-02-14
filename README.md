@@ -7,12 +7,9 @@ You can use it to manipulate the dom, add rust event handlers, or send messages 
 
 ## TODO:
 - *Find a way to not mutilate servo's encapsulation
-- Component + databinding example: todolist that read/saves from file
-- Network request example (using rust code for request + channel + frame handler)
+- Component + databinding example: todolist
 
-- DEMO: Build simple text editor:
-    - Native menu, open file dialog
-    - Find/replace, matching bracket highlighting
+- Native file menu, open/save file dialog
 
 - OpenGL support: Allow overlaying opengl content, maybe hook into window.present? Canvas would be nice.
 
