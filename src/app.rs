@@ -18,6 +18,8 @@ use servo::script::dom::element::Element;
 
 use servo::script::script_thread::ION_APPLICATION_FRAME_CALLBACK;
 
+fn ds<T>(str: T) -> DOMString where T: ToString { DOMString::from_string(str.to_string()) }
+
 thread_local!(static APP_STATE: RefCell<AppState> = RefCell::new(AppState::new()));
 thread_local!(static APP_VIEWS: RefCell<AppView> = RefCell::new(AppView::default()));
 
@@ -80,11 +82,11 @@ impl AppView {
         dom_emem.deref().SetId(DOMString::from_string(elem.id.clone()));
         match self.child_to_parent.get(&id) {
             Some(p) => {
-                let parent_ptr = doc.GetElementById(DOMString::from_string(p.to_string())).unwrap();
+                let parent_ptr = doc.GetElementById(ds(p)).unwrap();
                 parent_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(dom_emem)).unwrap();
             }
             None => {
-                let body_collection = doc.GetElementsByTagName(DOMString::from_string("body".to_string()));
+                let body_collection = doc.GetElementsByTagName(ds("body"));
                 let body_ptr = body_collection.elements_iter().last().unwrap();
                 body_ptr.deref().upcast::<Node>().AppendChild(&DomRoot::upcast(dom_emem)).unwrap();
             }
@@ -138,14 +140,18 @@ pub fn app_main(doc: &Document) {
     });
 
     let button = APP_VIEWS.with(|root| {
-        root.borrow_mut().make_child(None, "p".to_string(), |id, state, _, doc| {
-            let elem_ptr = doc.GetElementById(DOMString::from_string(id.to_string())).unwrap();
-            elem_ptr.deref().SetInnerHTML(DOMString::from_string(format!("The current count is {}!",
-                                                                         state.get_count()).to_string())).unwrap();
+        let parent = root.borrow_mut().make_child(None, "div".to_string(), |id, _, _, doc| {
+            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+            elem_ptr.deref().SetAttribute(ds("style"), ds("background: #eee")).unwrap();
         });
-        root.borrow_mut().make_child(None, "button".to_string(), |id, _, _, doc| {
-            let elem_ptr = doc.GetElementById(DOMString::from_string(id.to_string())).unwrap();
-            elem_ptr.deref().SetInnerHTML(DOMString::from_string("Click me!".to_string())).unwrap();
+        root.borrow_mut().make_child(Some(parent), "p".to_string(), |id, state, _, doc| {
+            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+            elem_ptr.deref().SetInnerHTML(ds(format!("The current count is {}!",
+                                                                         state.get_count()))).unwrap();
+        });
+        root.borrow_mut().make_child(Some(parent), "button".to_string(), |id, _, _, doc| {
+            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+            elem_ptr.deref().SetInnerHTML(ds("Click me!")).unwrap();
         })
     });
 
@@ -166,7 +172,7 @@ pub fn app_main(doc: &Document) {
                 root.borrow_mut().render(doc);
             });
 
-            let button_ptr = doc.GetElementById(DOMString::from_string(button.to_string())).unwrap();
+            let button_ptr = doc.GetElementById(ds(button)).unwrap();
             let node: &EventTarget = button_ptr.deref().upcast::<EventTarget>();
             node.add_event_handler_rust("click", button_click.clone());
         })
