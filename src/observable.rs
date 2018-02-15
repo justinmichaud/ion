@@ -1,13 +1,12 @@
 #[macro_export]
 macro_rules! observable {
-    ($glob_state_ty:ty, $app_state_ty:ty, struct $name:ident {
+    (struct $name:ident {
         $($field:ident : $t:ty = $e:expr $(,)*)*
     }) => {
         struct $name {
             $(
                 $field : $t,
             )*
-            observers: Vec<fn($glob_state_ty, $app_state_ty)->()>,
             has_changed: bool,
         }
 
@@ -17,13 +16,8 @@ macro_rules! observable {
                     $(
                         $field : $e,
                     )*
-                    observers: vec![],
                     has_changed: true,
                  }
-            }
-
-            pub fn on_change(&mut self, observer: fn($glob_state_ty, $app_state_ty)->()) {
-                self.observers.push(observer)
             }
 
             $(
