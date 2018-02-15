@@ -53,9 +53,10 @@ impl AppView {
         })
     }
 
-    pub fn make_child(&mut self, parent: Option<u32>, tag: String, render: HtmlElementRender) -> u32 {
+    pub fn make_child<T>(&mut self, parent: Option<u32>, tag: T, render: HtmlElementRender) -> u32
+            where T: ToString {
         let id = Self::gen_id();
-        let e = HtmlElement {  id: id.to_string(), tag, render };
+        let e = HtmlElement {  id: id.to_string(), tag: tag.to_string(), render };
 
         self.elements.insert(id, e);
 
@@ -123,6 +124,22 @@ impl AppView {
     }
 }
 
+fn set_text<T>(id: u32, doc: &Document, text: T) where T: ToString {
+    let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+    elem_ptr.deref().SetInnerHTML(ds(text)).unwrap();
+}
+
+fn set_attribute<T,V>(id: u32, doc: &Document, prop: T, val: V) where T: ToString, V: ToString {
+    let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+    elem_ptr.deref().SetAttribute(ds(prop), ds(val)).unwrap();
+}
+
+fn set_event<T>(id: u32, doc: &Document, event: T, handler: RustEventHandler) where T: ToString {
+    let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+    let node: &EventTarget = elem_ptr.deref().upcast::<EventTarget>();
+    node.add_event_handler_rust(ds(event), handler);
+}
+
 fn frame_callback(doc: &Document) { //TODO: If this always modifies the DOM, the intermediate state is never rendered
     let has_changed = APP_STATE.with(|root| {
         let val = root.borrow().has_changed;
@@ -140,18 +157,14 @@ pub fn app_main(doc: &Document) {
     });
 
     let button = APP_VIEWS.with(|root| {
-        let parent = root.borrow_mut().make_child(None, "div".to_string(), |id, _, _, doc| {
-            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
-            elem_ptr.deref().SetAttribute(ds("style"), ds("background: #eee")).unwrap();
+        let parent = root.borrow_mut().make_child(None, "div", |id, _, _, doc| {
+            set_attribute(id, doc,"style", "background: #eee")
         });
         root.borrow_mut().make_child(Some(parent), "p".to_string(), |id, state, _, doc| {
-            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
-            elem_ptr.deref().SetInnerHTML(ds(format!("The current count is {}!",
-                                                                         state.get_count()))).unwrap();
+            set_text(id, doc,format!("The current count is {}!", state.get_count()))
         });
-        root.borrow_mut().make_child(Some(parent), "button".to_string(), |id, _, _, doc| {
-            let elem_ptr = doc.GetElementById(ds(id)).unwrap();
-            elem_ptr.deref().SetInnerHTML(ds("Click me!")).unwrap();
+        root.borrow_mut().make_child(Some(parent), "button", |id, _, _, doc| {
+            set_text(id, doc, "Click Me!")
         })
     });
 
@@ -165,16 +178,14 @@ pub fn app_main(doc: &Document) {
     };
 
     let window = doc.window();
-    window.deref().upcast::<EventTarget>().add_event_handler_rust("load", RustEventHandler {
+    window.deref().upcast::<EventTarget>().add_event_handler_rust(ds("load"), RustEventHandler {
         handler: Rc::new( move |doc: &Document, _| {
             APP_VIEWS.with(|root| {
                 root.borrow_mut().attach_all(doc);
                 root.borrow_mut().render(doc);
             });
 
-            let button_ptr = doc.GetElementById(ds(button)).unwrap();
-            let node: &EventTarget = button_ptr.deref().upcast::<EventTarget>();
-            node.add_event_handler_rust("click", button_click.clone());
+            set_event(button,doc, "click", button_click.clone());
         })
     });
 }
