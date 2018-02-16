@@ -25,7 +25,7 @@ macro_rules! observable {
                     #[allow(dead_code)]
                     fn [get_ $field](&self) -> &$t { &self.$field }
                     #[allow(dead_code)]
-                    fn [get_ $field _mut](&mut self) -> &mut $t { &mut self.$field }
+                    fn [get_ $field _mut](&mut self) -> &mut $t { self.has_changed = true; &mut self.$field }
                     #[allow(dead_code)]
                     fn [set_ $field](&mut self, val: $t) {
                         self.$field = val;
