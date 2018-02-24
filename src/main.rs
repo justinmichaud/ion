@@ -5,6 +5,8 @@
 mod observable;
 mod app;
 
+#[macro_use] extern crate maplit;
+
 /*
     This is taken mostly from https://github.com/paulrouget/servo-embedding-example
 */
