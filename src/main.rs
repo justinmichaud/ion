@@ -3,6 +3,8 @@
 
 #[macro_use]
 mod observable;
+#[macro_use]
+mod html;
 mod app;
 
 #[macro_use] extern crate maplit;
@@ -92,7 +94,7 @@ fn main() {
                              gl,
                          });
 
-    let mut servo = servo::Servo::new(window.clone(), Some(app::app_main));
+    let mut servo = servo::Servo::new(window.clone(), Some((app::app_setup, html::app_main)));
 
     let url = ServoUrl::parse(&format!("file://{}",  env::current_dir().unwrap()
         .join("app_resources/index.html").to_str().unwrap())).unwrap();
