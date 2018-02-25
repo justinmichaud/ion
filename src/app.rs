@@ -21,8 +21,10 @@ fn render(state: &AppState) -> HtmlElement {
 
             APP_STATE.with(|root| {
                 let mut state = root.borrow_mut();
-                println!("Set text to {}", text);
-                *state.get_text_mut() = text.clone();
+                if *state.get_text() != text {
+                    println!("Set text to {}", text);
+                    *state.get_text_mut() = text.clone();
+                }
             });
         })
     });

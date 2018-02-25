@@ -49,9 +49,13 @@ impl HtmlElement {
     }
 
     pub fn get_dom_element_value(id: &String, doc: &Document) -> String {
+        use servo::script::dom::htmltextareaelement::HTMLTextAreaElement;
+        use servo::script::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+
         let elem_ptr = doc.GetElementById(ds(id)).unwrap();
-//        elem_ptr.deref().GetAttribute(ds("value")).unwrap().to_string()
-        elem_ptr.deref().GetInnerHTML().unwrap().to_string()
+        elem_ptr.deref().downcast::<HTMLTextAreaElement>()
+            .expect("Cannot get element value on non-textarea element")
+            .Value().to_string()
     }
 
     pub fn new<T: ToString, U: ToString, V: ToString>(unique_key: Option<T>, tag: U, text: V,
@@ -89,7 +93,8 @@ impl HtmlElement {
         let dom_elem: DomRoot<Element> = doc.CreateElement(DOMString::from_string(self.tag.clone()),
                                                            unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap();
         dom_elem.deref().SetId(ds(self.id.clone()));
-        dom_elem.deref().SetInnerHTML(ds(self.text.clone())).unwrap(); //TODO: SetTextContent
+        dom_elem.deref().upcast::<Node>().SetTextContent(Some(ds(self.text.clone())));
+
         for (event, listener) in &self.listeners {
             let node: &EventTarget = dom_elem.upcast::<EventTarget>();
             node.add_event_handler_rust(ds(event), listener.clone());
