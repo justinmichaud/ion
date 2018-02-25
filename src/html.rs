@@ -28,6 +28,7 @@ pub struct HtmlElement {
     id: String,
     tag: String,
     text: String,
+    style: String,
     listeners: HashMap<String, RustEventHandler>,
     children: Vec<HtmlElement>
 }
@@ -68,7 +69,7 @@ impl HtmlElement {
         }
     }
 
-    pub fn new<T: ToString, U: ToString, V: ToString>(unique_key: Option<T>, tag: U, text: V,
+    pub fn new<T: ToString, U: ToString, V: ToString, W: ToString>(unique_key: Option<T>, tag: U, text: V, style: W,
                                                       listeners: HashMap<String, RustEventHandler>,
                                                       children: Vec<HtmlElement>) -> HtmlElement {
         let id = match unique_key {
@@ -79,6 +80,7 @@ impl HtmlElement {
             id,
             tag: tag.to_string(),
             text: text.to_string(),
+            style: style.to_string(),
             listeners,
             children,
         }
@@ -106,13 +108,20 @@ impl HtmlElement {
         let dom_elem: DomRoot<Element> = if has_valid_elem {
             let elem_ptr = doc.GetElementById(ds(self.id.clone())).unwrap();
             Self::try_set_dom_element_value(&self.id, doc, self.text.clone());
-            elem_ptr //TODO remove listeners
+
+            {
+                let node: &EventTarget = elem_ptr.upcast::<EventTarget>();
+                node.remove_all_listeners();
+            }
+
+            elem_ptr
         } else {
             doc.CreateElement(DOMString::from_string(self.tag.clone()),
                                    unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap()
         };
 
         dom_elem.deref().SetId(ds(self.id.clone()));
+        dom_elem.deref().SetAttribute(ds("style"), ds(self.style.clone())).unwrap();
         dom_elem.deref().upcast::<Node>().SetTextContent(Some(ds(self.text.clone())));
 
         for (event, listener) in &self.listeners {
