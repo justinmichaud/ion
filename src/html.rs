@@ -48,6 +48,12 @@ impl HtmlElement {
         })
     }
 
+    pub fn get_dom_element_value(id: &String, doc: &Document) -> String {
+        let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+//        elem_ptr.deref().GetAttribute(ds("value")).unwrap().to_string()
+        elem_ptr.deref().GetInnerHTML().unwrap().to_string()
+    }
+
     pub fn new<T: ToString, U: ToString, V: ToString>(unique_key: Option<T>, tag: U, text: V,
                                                       listeners: HashMap<String, RustEventHandler>,
                                                       children: Vec<HtmlElement>) -> HtmlElement {
@@ -93,6 +99,13 @@ impl HtmlElement {
             dom_elem.upcast::<Node>().AppendChild(&DomRoot::upcast(dom_child)).unwrap();
         }
         dom_elem
+    }
+
+    pub fn get_id(&self) -> String {
+        self.id.clone()
+    }
+    pub fn add_listener<T: ToString>(&mut self, event: T, listener: RustEventHandler) {
+        self.listeners.insert(event.to_string(), listener);
     }
 }
 
