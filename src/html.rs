@@ -58,6 +58,16 @@ impl HtmlElement {
             .Value().to_string()
     }
 
+    pub fn try_set_dom_element_value(id: &String, doc: &Document, value: String) {
+        use servo::script::dom::htmltextareaelement::HTMLTextAreaElement;
+        use servo::script::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+
+        let elem_ptr = doc.GetElementById(ds(id)).unwrap();
+        if let Some(elem) = elem_ptr.deref().downcast::<HTMLTextAreaElement>() {
+            elem.SetValue(ds(value))
+        }
+    }
+
     pub fn new<T: ToString, U: ToString, V: ToString>(unique_key: Option<T>, tag: U, text: V,
                                                       listeners: HashMap<String, RustEventHandler>,
                                                       children: Vec<HtmlElement>) -> HtmlElement {
@@ -89,9 +99,19 @@ impl HtmlElement {
     }
 
     fn make_tree(&self, doc: &Document) -> DomRoot<Element> {
-        // TODO: IF doc already has element with this id, then detach and produce that
-        let dom_elem: DomRoot<Element> = doc.CreateElement(DOMString::from_string(self.tag.clone()),
-                                                           unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap();
+        let has_valid_elem = match doc.GetElementById(ds(self.id.clone())) {
+            Some(ref dom_elem) if dom_elem.deref().TagName().to_string() == self.tag.to_uppercase() => true,
+            _ => false
+        };
+        let dom_elem: DomRoot<Element> = if has_valid_elem {
+            let elem_ptr = doc.GetElementById(ds(self.id.clone())).unwrap();
+            Self::try_set_dom_element_value(&self.id, doc, self.text.clone());
+            elem_ptr //TODO remove listeners
+        } else {
+            doc.CreateElement(DOMString::from_string(self.tag.clone()),
+                                   unsafe { &ElementCreationOptions::empty(doc.window().get_cx()) }).unwrap()
+        };
+
         dom_elem.deref().SetId(ds(self.id.clone()));
         dom_elem.deref().upcast::<Node>().SetTextContent(Some(ds(self.text.clone())));
 

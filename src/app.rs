@@ -12,9 +12,9 @@ observable! {struct AppState {
 
 fn render(state: &AppState) -> HtmlElement {
     println!("Rendering with text {}", state.get_text());
-    let mut tx = HtmlElement::new(None as Option<String>, "textarea", state.get_text(), hashmap!(), vec![]);
+    let mut tx = HtmlElement::new(Some("id"), "textarea", state.get_text(), hashmap!(), vec![]);
     let id = tx.get_id();
-    tx.add_listener("change", RustEventHandler {
+    tx.add_listener("input", RustEventHandler {
         handler: Rc::new(move |doc, _| {
             let text = HtmlElement::get_dom_element_value(&id, doc).to_uppercase();
             println!("Got text {}", text);

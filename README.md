@@ -7,7 +7,6 @@ You can use it to manipulate the dom, add rust event handlers, or send messages 
 
 ## TODO:
 - *Find a way to not mutilate servo's encapsulation
-- Input element support: Test with all-caps
 - Example: todolist
 
 - Native file menu, open/save file dialog
