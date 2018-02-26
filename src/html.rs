@@ -141,8 +141,10 @@ impl HtmlElement {
     pub fn get_id(&self) -> String {
         self.id.clone()
     }
-    pub fn add_listener<T: ToString>(&mut self, event: T, listener: RustEventHandler) {
-        self.listeners.insert(event.to_string(), listener);
+    pub fn add_listener<T: ToString>(&mut self, event: Vec<T>, listener: RustEventHandler) {
+        for e in event {
+            self.listeners.insert(e.to_string(), listener.clone());
+        }
     }
 }
 

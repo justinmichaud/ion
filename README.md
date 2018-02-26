@@ -1,15 +1,18 @@
 ## Ion - An Oxidized Electron
 Proof of concept for building native html/css/rust apps using servo and a declarative framework. Ideally, this would be like electron, but with rust/servo instead of javascript/webkit
 
+## Progress
+This is pre-alpha. It relies on changes to servo that are all one big massive hack.
+
 ## Structure
 See [app.rs](src/app.rs) for the meat of the application. You simply provide a render function that takes a state and produces an immutable dom tree.
 Everything else is library code that does not need to be duplicated.
 
 ## Pictures:
-TODO
+![todo.png](todo.png)
 
 To build:
-Download https://github.com/justinmichaud/servo to ../servo
+Download my fork of servo, https://github.com/justinmichaud/servo to ../servo
 On Mac, build as normal with cargo:
 ```
 cargo run --release
@@ -23,8 +26,7 @@ WAYLAND_DISPLAY=wayland-1
 ```
 
 ## TODO:
-- Example: todolist
-- *Find a way to not mutilate servo's encapsulation
+- Find a way to not mutilate servo's encapsulation
 - Support embedding css with an element
 - Add an html template macro
 - Native file menu, open/save file dialog

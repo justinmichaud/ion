@@ -1,0 +1,25 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+textarea, p {
+    display: inline-block;
+    width: 50%;
+    height; 30px;
+    vertical-align: middle;
+
+    margin: 5px;
+    padding: 5px;
+}
+
+button {
+    height: 30px;
+    width: 40px;
+    vertical-align: middle;
+    text-align: center;
+
+    margin: 5px;
+    padding: 5px;
+}
