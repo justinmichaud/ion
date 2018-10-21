@@ -1,8 +1,8 @@
 ## Ion - An Oxidized Electron
-Proof of concept for building native html/css/rust apps using servo and a declarative framework. Ideally, this would be like electron, but with rust/servo instead of javascript/webkit
+Proof of concept for building native html/css/rust apps using servo. Ideally, this would be like electron, but with rust/servo instead of javascript/webkit
 
 ## Progress
-This is pre-alpha. It relies on changes to servo that are all one big massive hack.
+This is one big massive hack, and will probably never be completed.
 
 ## Structure
 See [app.rs](src/app.rs) for the meat of the application. You simply provide a render function that takes a state and produces an immutable dom tree.
